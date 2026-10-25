@@ -16,8 +16,9 @@ jobs:
         run: |
           docker run --rm --platform linux/arm64 alpine:3.20 sh -c "
             set -e
-            apk add --no-cache bash curl git php-cli cmake make autoconf automake bison flex pkgconf binutils texinfo upx gcc g++ linux-headers re2c gperf gettext-dev patch libtool
-            git clone https://github.com/zyyzcr/static-php-cli-hosted.git /src
+            apk add --no-cache bash curl git php-cli cmake make autoconf automake bison flex pkgconf binutils texinfo upx gcc g++ linux-headers re2c gperf gettext-dev patch libtool binutils-gold
+            # 这里拉 webman 官方原版仓库（自带 build.php + craft目录）
+            git clone https://github.com/webman-php/static-php-cli-hosted.git /src
             cd /src
             ls -la
             curl -#fSL https://dl.static-php.dev/v3/spc-bin/nightly/spc-linux-aarch64 -o spc
@@ -26,13 +27,13 @@ jobs:
             php build.php craft/php-8.4.yml
           "
 
-      - name: Download artifact from docker
+      - name: Copy output
         run: |
           mkdir -p out
-          docker create --name tmpbuild --platform linux/arm64 alpine:3.20
-          docker cp tmpbuild:/src/buildroot/bin/php ./out/
-          docker cp tmpbuild:/src/buildroot/bin/micro.sfx ./out/
-          docker rm tmpbuild
+          cid=$(docker create --platform linux/arm64 alpine:3.20 true)
+          docker cp $cid:/src/buildroot/bin/php ./out/
+          docker cp $cid:/src/buildroot/bin/micro.sfx ./out/
+          docker rm $cid
 
       - name: Upload
         uses: actions/upload-artifact@v4
