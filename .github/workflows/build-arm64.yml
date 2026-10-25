@@ -7,8 +7,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
-      - name: Checkout static-php-cli-hosted
+      - name: Checkout static-php-cli-hosted full source
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          sparse-checkout: disable
 
       - name: Setup QEMU
         uses: docker/setup-qemu-action@v3
