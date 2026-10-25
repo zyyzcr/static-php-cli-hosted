@@ -5,9 +5,9 @@ on:
 jobs:
   build-arm64:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 120
     steps:
-      - name: Checkout
+      - name: Checkout static-php-cli-hosted
         uses: actions/checkout@v4
 
       - name: Setup QEMU
@@ -15,19 +15,21 @@ jobs:
         with:
           platforms: arm64
 
-      - name: Build arm64 PHP
-        uses: addnab/docker-run-action@v3
-        with:
-          image: alpine:3.20
-          options: --platform linux/arm64 -v ${{ github.workspace }}:/work
-          run: |
-            set -e
-            cd /work
-            apk add --no-cache bash curl cmake make autoconf automake bison flex pkgconf binutils texinfo upx git
-            curl -#fSL https://dl.static-php.dev/v3/spc-bin/nightly/spc-linux-aarch64 -o spc
-            chmod +x spc
-            ./spc doctor --auto-fix
-            ./spc build:php --craft-file=craft/php-8.4.yml
+      - name: Build arm64 inside alpine
+        run: |
+          docker run --rm --platform linux/arm64 \
+            -v $PWD:/work \
+            alpine:3.20 \
+            sh -c "
+              set -e
+              cd /work
+              apk add --no-cache bash curl cmake make autoconf automake bison flex pkgconf binutils texinfo upx git php-cli
+              curl -#fSL https://dl.static-php.dev/v3/spc-bin/nightly/spc-linux-aarch64 -o spc
+              chmod +x spc
+              ./spc doctor --auto-fix
+              # ✅ 重点：调用仓库自带 build.php，读取官方craft配置
+              php build.php craft/php-8.4.yml
+            "
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
