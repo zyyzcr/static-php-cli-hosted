@@ -1,45 +1,46 @@
-name: Build arm64 static php
+name: Build arm64 static php8.4 (webman full extensions)
 on:
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 180
     steps:
       - name: Setup QEMU
         uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64
 
-      - name: Build inside alpine arm64
+      - name: Build static php & micro.sfx
         run: |
           docker run --rm --platform linux/arm64 alpine:3.20 sh -c "
             set -e
-            apk add --no-cache bash curl git php-cli cmake make autoconf automake bison flex pkgconf binutils texinfo upx gcc g++ linux-headers re2c gperf gettext-dev patch libtool binutils-gold
+            apk add --no-cache bash curl git cmake make autoconf automake bison flex pkgconf binutils binutils-gold texinfo upx gcc g++ linux-headers re2c gperf gettext-dev patch libtool
             curl -#fSL https://dl.static-php.dev/v3/spc-bin/nightly/spc-linux-aarch64 -o /usr/local/bin/spc
             chmod +x /usr/local/bin/spc
             spc doctor --auto-fix
-            # 直接 spc build，编译 cli + micro，webman打包用
-            spc build --build-cli --build-micro --with-upx-pack \
-              pdo,pdo_sqlite,openssl,curl,mbstring,json,fileinfo,ctype,dom,xml,zip
+            spc build --php-version 8.4 --build-cli --build-micro --with-upx-pack \
+            apcu,bcmath,bz2,calendar,ctype,curl,dba,dom,exif,fileinfo,filter,ftp,gd,gmp,iconv,imap,mbstring,mysqli,mysqlnd,openssl,pcntl,pdo,pdo_mysql,pdo_sqlite,pgsql,phar,posix,redis,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,xsl,zip,zlib,opcache
           "
 
-      - name: Copy output
+      - name: Copy build artifacts
         run: |
           mkdir -p out
           cid=$(docker run -d --platform linux/arm64 --rm alpine:3.20 sleep 600)
           docker exec $cid sh -c "
+            apk add --no-cache curl
             curl -#fSL https://dl.static-php.dev/v3/spc-bin/nightly/spc-linux-aarch64 -o /usr/local/bin/spc
             chmod +x /usr/local/bin/spc
-            spc build --build-cli --build-micro --with-upx-pack pdo,pdo_sqlite,openssl,curl,mbstring,json,fileinfo,ctype,dom,xml,zip
+            spc build --php-version 8.4 --build-cli --build-micro --with-upx-pack \
+            apcu,bcmath,bz2,calendar,ctype,curl,dba,dom,exif,fileinfo,filter,ftp,gd,gmp,iconv,imap,mbstring,mysqli,mysqlnd,openssl,pcntl,pdo,pdo_mysql,pdo_sqlite,pgsql,phar,posix,redis,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,xsl,zip,zlib,opcache
           "
           docker cp $cid:/root/buildroot/bin/php ./out/
           docker cp $cid:/root/buildroot/bin/micro.sfx ./out/
           docker stop $cid
 
-      - name: Upload
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: php-arm64
+          name: php8.4-arm64-full
           path: out/
