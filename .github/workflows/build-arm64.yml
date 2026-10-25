@@ -1,4 +1,4 @@
-name: Build Webman Official arm64 PHP + micro.sfx
+name: Build Webman arm64 PHP + micro.sfx
 on:
   workflow_dispatch:
 
@@ -7,31 +7,29 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
-      - name: Checkout source (webman static-php-cli-hosted)
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Enable QEMU arm64
+      - name: Setup QEMU
         uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64
 
-      - name: Build inside alpine arm64 container
+      - name: Build arm64 PHP
         uses: addnab/docker-run-action@v3
         with:
-          image: --platform linux/arm64 alpine:3.20
-          options: -v ${{ github.workspace }}:/work
+          image: alpine:3.20
+          options: --platform linux/arm64 -v ${{ github.workspace }}:/work
           run: |
             set -e
             cd /work
             apk add --no-cache bash curl cmake make autoconf automake bison flex pkgconf binutils texinfo upx git
-            # 拉取 aarch64 spc
             curl -#fSL https://dl.static-php.dev/v3/spc-bin/nightly/spc-linux-aarch64 -o spc
             chmod +x spc
             ./spc doctor --auto-fix
-            # ========= 重点：直接使用仓库内 webman 官方预设 craft 配置 =========
             ./spc build:php --craft-file=craft/php-8.4.yml
 
-      - name: Upload产物（arm64 cli php + micro.sfx）
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: webman-php8.4-aarch64
