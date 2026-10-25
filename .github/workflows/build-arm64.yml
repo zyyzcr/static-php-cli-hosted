@@ -1,42 +1,36 @@
-name: Build arm64 static php
-on:
-  workflow_dispatch:
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    timeout-minutes: 120
-    steps:
-      - name: Setup QEMU
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64
-
-      - name: Build inside alpine arm64
-        run: |
-          docker run --rm --platform linux/arm64 alpine:3.20 sh -c "
-            set -e
-            apk add --no-cache bash curl git php-cli cmake make autoconf automake bison flex pkgconf binutils texinfo upx gcc g++ linux-headers re2c gperf gettext-dev patch libtool binutils-gold
-            # 这里拉 webman 官方原版仓库（自带 build.php + craft目录）
-            git clone https://github.com/webman-php/static-php-cli-hosted.git /src
-            cd /src
-            ls -la
-            curl -#fSL https://dl.static-php.dev/v3/spc-bin/nightly/spc-linux-aarch64 -o spc
-            chmod +x spc
-            ./spc doctor --auto-fix
-            php build.php craft/php-8.4.yml
-          "
-
-      - name: Copy output
-        run: |
-          mkdir -p out
-          cid=$(docker create --platform linux/arm64 alpine:3.20 true)
-          docker cp $cid:/src/buildroot/bin/php ./out/
-          docker cp $cid:/src/buildroot/bin/micro.sfx ./out/
-          docker rm $cid
-
-      - name: Upload
-        uses: actions/upload-artifact@v4
-        with:
-          name: php-arm64
-          path: out/
+Run docker run --rm --platform linux/arm64 alpine:3.20 sh -c "
+Unable to find image 'alpine:3.20' locally
+3.20: Pulling from library/alpine
+3f26bc2dec0b: Pulling fs layer
+3f26bc2dec0b: Download complete
+cee42a41056b: Download complete
+8b093306b817: Download complete
+3f26bc2dec0b: Pull complete
+Digest: sha256:d9e853e87e55526f6b2917df91a2115c36dd7c696a35be12163d44e6e2a4b6bc
+Status: Downloaded newer image for alpine:3.20
+fetch https://dl-cdn.alpinelinux.org/alpine/v3.20/main/aarch64/APKINDEX.tar.gz
+fetch https://dl-cdn.alpinelinux.org/alpine/v3.20/community/aarch64/APKINDEX.tar.gz
+(1/73) Upgrading musl (1.2.5-r3 -> 1.2.5-r4)
+(2/73) Installing m4 (1.4.19-r3)
+(3/73) Installing libbz2 (1.0.8-r6)
+(4/73) Installing perl (5.38.5-r0)
+(5/73) Installing autoconf (2.72-r0)
+(6/73) Installing automake (1.16.5-r2)
+(7/73) Installing ncurses-terminfo-base (6.4_p20240420-r2)
+(8/73) Installing libncursesw (6.4_p20240420-r2)
+(9/73) Installing readline (8.2.10-r0)
+(10/73) Installing bash (5.2.26-r0)
+Executing bash-5.2.26-r0.post-install
+(11/73) Installing libgcc (13.2.1_git20240309-r1)
+(12/73) Installing jansson (2.14-r4)
+(13/73) Installing libstdc++ (13.2.1_git20240309-r1)
+(14/73) Installing zstd-libs (1.5.6-r0)
+(15/73) Installing binutils (2.42-r1)
+(16/73) Installing binutils-gold (2.42-r1)
+(17/73) Installing bison (3.8.2-r1)
+(18/73) Installing libacl (2.3.2-r0)
+(19/73) Installing libexpat (2.8.1-r0)
+(20/73) Installing lz4-libs (1.9.4-r5)
+(21/73) Installing xz-libs (5.8.3-r0)
+(22/73) Installing libarchive (3.8.3-r0)
+(23/73) Installing rhash-libs (1.4.4-r0)
