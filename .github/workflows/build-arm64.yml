@@ -1,43 +1,41 @@
-name: Build Webman arm64 PHP + micro.sfx
+name: Build arm64 static php
 on:
   workflow_dispatch:
 
 jobs:
-  build-arm64:
+  build:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
-      - name: Checkout static-php-cli-hosted full source
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          sparse-checkout: disable
-
       - name: Setup QEMU
         uses: docker/setup-qemu-action@v3
         with:
           platforms: arm64
 
-      - name: Build arm64 inside alpine
+      - name: Build inside alpine arm64
         run: |
-          docker run --rm --platform linux/arm64 \
-            -v "$PWD:/src" \
-            alpine:3.20 \
-            sh -c "
-              set -e
-              cd /src
-              ls -la
-              apk add --no-cache bash curl cmake make autoconf automake bison flex pkgconf binutils texinfo upx git php-cli
-              curl -#fSL https://dl.static-php.dev/v3/spc-bin/nightly/spc-linux-aarch64 -o spc
-              chmod +x spc
-              ./spc doctor --auto-fix
-              php build.php craft/php-8.4.yml
-            "
+          docker run --rm --platform linux/arm64 alpine:3.20 sh -c "
+            set -e
+            apk add --no-cache bash curl git php-cli cmake make autoconf automake bison flex pkgconf binutils texinfo upx gcc g++ linux-headers re2c gperf gettext-dev patch libtool
+            git clone https://github.com/zyyzcr/static-php-cli-hosted.git /src
+            cd /src
+            ls -la
+            curl -#fSL https://dl.static-php.dev/v3/spc-bin/nightly/spc-linux-aarch64 -o spc
+            chmod +x spc
+            ./spc doctor --auto-fix
+            php build.php craft/php-8.4.yml
+          "
 
-      - name: Upload artifact
+      - name: Download artifact from docker
+        run: |
+          mkdir -p out
+          docker create --name tmpbuild --platform linux/arm64 alpine:3.20
+          docker cp tmpbuild:/src/buildroot/bin/php ./out/
+          docker cp tmpbuild:/src/buildroot/bin/micro.sfx ./out/
+          docker rm tmpbuild
+
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
-          name: webman-php8.4-aarch64
-          path: |
-            buildroot/bin/php
-            buildroot/bin/micro.sfx
+          name: php-arm64
+          path: out/
