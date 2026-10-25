@@ -18,16 +18,16 @@ jobs:
       - name: Build arm64 inside alpine
         run: |
           docker run --rm --platform linux/arm64 \
-            -v $PWD:/work \
+            -v "$PWD:/src" \
             alpine:3.20 \
             sh -c "
               set -e
-              cd /work
+              cd /src
+              ls -la
               apk add --no-cache bash curl cmake make autoconf automake bison flex pkgconf binutils texinfo upx git php-cli
               curl -#fSL https://dl.static-php.dev/v3/spc-bin/nightly/spc-linux-aarch64 -o spc
               chmod +x spc
               ./spc doctor --auto-fix
-              # ✅ 重点：调用仓库自带 build.php，读取官方craft配置
               php build.php craft/php-8.4.yml
             "
 
