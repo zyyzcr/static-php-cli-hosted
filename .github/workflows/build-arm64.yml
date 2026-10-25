@@ -13,26 +13,17 @@ jobs:
           platforms: arm64
 
       - name: Build static php & micro.sfx
+        id: build_step
         run: |
-          docker run --rm --platform linux/arm64 alpine:3.20 sh -c "
+          mkdir -p out
+          cid=$(docker run -d --rm --platform linux/arm64 alpine:3.20 sleep 3600)
+          docker exec $cid sh -c "
             set -e
             apk add --no-cache bash curl git cmake make autoconf automake bison flex pkgconf binutils binutils-gold texinfo upx gcc g++ linux-headers re2c gperf gettext-dev patch libtool
             curl -#fSL https://dl.static-php.dev/v3/spc-bin/nightly/spc-linux-aarch64 -o /usr/local/bin/spc
             chmod +x /usr/local/bin/spc
             spc doctor --auto-fix
-            spc build --php-version 8.4 --build-cli --build-micro --with-upx-pack \
-            apcu,bcmath,bz2,calendar,ctype,curl,dba,dom,exif,fileinfo,filter,ftp,gd,gmp,iconv,imap,mbstring,mysqli,mysqlnd,openssl,pcntl,pdo,pdo_mysql,pdo_sqlite,pgsql,phar,posix,redis,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,xsl,zip,zlib,opcache
-          "
-
-      - name: Copy build artifacts
-        run: |
-          mkdir -p out
-          cid=$(docker run -d --platform linux/arm64 --rm alpine:3.20 sleep 600)
-          docker exec $cid sh -c "
-            apk add --no-cache curl
-            curl -#fSL https://dl.static-php.dev/v3/spc-bin/nightly/spc-linux-aarch64 -o /usr/local/bin/spc
-            chmod +x /usr/local/bin/spc
-            spc build --php-version 8.4 --build-cli --build-micro --with-upx-pack \
+            spc build --dl-with-php 8.4 --build-cli --build-micro --with-upx-pack \
             apcu,bcmath,bz2,calendar,ctype,curl,dba,dom,exif,fileinfo,filter,ftp,gd,gmp,iconv,imap,mbstring,mysqli,mysqlnd,openssl,pcntl,pdo,pdo_mysql,pdo_sqlite,pgsql,phar,posix,redis,session,simplexml,soap,sockets,sodium,sqlite3,tokenizer,xml,xmlreader,xmlwriter,xsl,zip,zlib,opcache
           "
           docker cp $cid:/root/buildroot/bin/php ./out/
